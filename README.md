@@ -17,17 +17,43 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+The system compares each song in `songs.csv` to a user's taste profile, gives every song a score from 0 to 1, and recommends the highest-scoring songs.
 
-Some prompts to answer:
+**Song features.** Each song is one row of `songs.csv`. The system uses these features:
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+- `genre` and `mood`: text labels. A song gets credit when its label matches the user's preferred genre or mood.
+- `energy`, `valence`, `danceability`, and `acousticness`: numbers from 0 to 1. The system compares each one to the user's target value.
+- `tempo_bpm`: scaled to 0 to 1 using a fixed range of 60 to 180 BPM, so it can be compared with the other numbers.
 
-You can include a simple diagram or bullet list if helpful.
+The `id`, `title`, and `artist` columns are not used for scoring. `title` and `artist` are only shown in the output.
+
+**User profile.** A `UserProfile` stores:
+
+- a target value for each numeric feature (for example, energy 0.4), which is the level the user likes
+- a weight for each feature, which sets how much that feature counts
+- a preferred genre and mood
+- the ids of songs the user has already heard or liked, so they are not recommended again
+
+**Scoring each song.** The score is built in two steps.
+
+1. **Numeric score.** For each numeric feature, the system measures how close the song is to the user's target: `closeness = 1 - |song value - target|`. The closer the value, the higher the closeness. The closeness values are averaged using the feature weights. A song with energy 0.42 scores close to 1.0 for a user who wants energy 0.40, and a song with energy 0.91 scores about 0.5.
+2. **Category score.** Each match in genre or mood adds to the score, with genre and mood each worth half.
+
+The two scores are combined: `final = 0.7 × numeric score + 0.3 × category score`. The 0.7 and 0.3 are starting values to be tested.
+
+```
+songs.csv ──► normalize numbers ──► closeness to target ──┐
+                                                          ├──► final score ──► sort ──► top k
+UserProfile (targets, weights, genre, mood) ──────────────┘          ▲
+                                                 genre/mood match ───┘
+```
+
+**Choosing songs.** The system:
+
+1. Skips songs the user has already heard or liked.
+2. Sorts the remaining songs by final score, highest first. Ties are broken by `id` so results are the same each time.
+3. Limits each artist to a set number of songs, so one artist cannot fill the whole list.
+4. Returns the top k songs (the starting value is 5).
 
 ---
 
