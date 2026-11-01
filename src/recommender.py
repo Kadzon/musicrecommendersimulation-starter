@@ -1,5 +1,5 @@
-from typing import List, Dict, Tuple, Optional
-from dataclasses import dataclass
+from typing import List, Dict, Tuple, Optional, Set
+from dataclasses import dataclass, field
 
 @dataclass
 class Song:
@@ -28,6 +28,22 @@ class UserProfile:
     favorite_mood: str
     target_energy: float
     likes_acoustic: bool
+    # Optional targets for the other numeric features. None means "no preference",
+    # so that feature is left out of the score.
+    target_valence: Optional[float] = None
+    target_danceability: Optional[float] = None
+    target_tempo_bpm: Optional[float] = None
+    target_acousticness: Optional[float] = None
+    # How much each numeric feature counts in the score. Keys match Song field names.
+    weights: Dict[str, float] = field(default_factory=lambda: {
+        "energy": 1.0,
+        "valence": 1.0,
+        "danceability": 1.0,
+        "acousticness": 1.0,
+        "tempo_bpm": 1.0,
+    })
+    # Songs the user has already heard or liked. These are not recommended again.
+    seen_song_ids: Set[int] = field(default_factory=set)
 
 class Recommender:
     """

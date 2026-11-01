@@ -17,9 +17,9 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-The system compares each song in `songs.csv` to a user's taste profile, gives every song a score from 0 to 1, and recommends the highest-scoring songs.
+The system compares each song in `songs.csv` to a user's taste profile, gives every song a score from 0 to 9 points, and recommends the highest-scoring songs.
 
-**Song features.** Each song is one row of `songs.csv`. The system uses these features:
+**Song features.** Each song is one row of `songs.csv`. The catalog has 20 songs: ids 1 to 10 are the starter songs, and ids 11 to 20 were added with hand-estimated feature values. The system uses these features:
 
 - `genre` and `mood`: text labels. A song gets credit when its label matches the user's preferred genre or mood.
 - `energy`, `valence`, `danceability`, and `acousticness`: numbers from 0 to 1. The system compares each one to the user's target value.
@@ -30,16 +30,39 @@ The `id`, `title`, and `artist` columns are not used for scoring. `title` and `a
 **User profile.** A `UserProfile` stores:
 
 - a target value for each numeric feature (for example, energy 0.4), which is the level the user likes
-- a weight for each feature, which sets how much that feature counts
 - a preferred genre and mood
 - the ids of songs the user has already heard or liked, so they are not recommended again
 
-**Scoring each song.** The score is built in two steps.
+**Scoring each song.** The system adds up points. There is no averaging or blending, and the feature weights are fixed for all users.
 
-1. **Numeric score.** For each numeric feature, the system measures how close the song is to the user's target: `closeness = 1 - |song value - target|`. The closer the value, the higher the closeness. The closeness values are averaged using the feature weights. A song with energy 0.42 scores close to 1.0 for a user who wants energy 0.40, and a song with energy 0.91 scores about 0.5.
-2. **Category score.** Each match in genre or mood adds to the score, with genre and mood each worth half.
+| Feature | Max points | Rule |
+|---|---|---|
+| `genre` | 3 | 3 if the song's genre equals the preferred genre, otherwise 0 |
+| `mood` | 2 | 2 if the song's mood equals the preferred mood (exact match only), otherwise 0 |
+| `energy` | 2 | `2 × closeness` |
+| `tempo_bpm` | 0.5 | `0.5 × closeness`, using the normalized tempo |
+| `valence` | 0.5 | `0.5 × closeness` |
+| `danceability` | 0.5 | `0.5 × closeness` |
+| `acousticness` | 0.5 | `0.5 × closeness` |
+| **Total** | **9** | Final score, from 0 to 9 |
 
-The two scores are combined: `final = 0.7 × numeric score + 0.3 × category score`. The 0.7 and 0.3 are starting values to be tested.
+For numeric features, `closeness = 1 - |song value - target|`, which is between 0 and 1. Tempo is first normalized to 0 to 1 with `(bpm - 60) / 120`, and the target is normalized the same way.
+
+**Example user profile: "Late-night studier"**
+- genre: lofi
+- mood: chill
+- targets: energy 0.40, tempo_bpm 80, valence 0.60, danceability 0.60, acousticness 0.75
+- skip list: song id 2 (Midnight Coding, already heard)
+
+**Worked example: song 4, Library Rain** (lofi, chill, energy 0.35, tempo 72, valence 0.60, danceability 0.58, acousticness 0.86)
+- genre: 3 (lofi matches)
+- mood: 2 (chill matches)
+- energy: 2 × (1 − 0.05) = 1.90
+- tempo: normalized song 0.10, normalized target 0.17, closeness 0.93 → 0.47
+- valence: 0.5 × 1.00 = 0.50
+- danceability: 0.5 × 0.98 = 0.49
+- acousticness: 0.5 × 0.89 = 0.45
+- **Total: about 8.80**
 
 ```
 songs.csv ──► normalize numbers ──► closeness to target ──┐
@@ -54,6 +77,8 @@ UserProfile (targets, weights, genre, mood) ────────────
 2. Sorts the remaining songs by final score, highest first. Ties are broken by `id` so results are the same each time.
 3. Limits each artist to a set number of songs, so one artist cannot fill the whole list.
 4. Returns the top k songs (the starting value is 5).
+
+
 
 ---
 
@@ -109,6 +134,20 @@ Paste a sample of your recommender's output here as a text block so a reader can
 
 ---
 
+## Algorithm Recipe
+
+1. **Input.** Load `songs.csv` and the `UserProfile` (numeric targets, preferred genre and mood, and a list of song ids to skip).
+2. **Skip.** Drop any song whose id is in the user's already-heard or liked list.
+3. **Normalize.** Scale `tempo_bpm` to 0 to 1 using `(bpm - 60) / 120`, so the 60 to 180 BPM range maps to 0 to 1. The other numeric features are already 0 to 1.
+4. **Genre and mood points.** Add 3 if the genre matches exactly, and add 2 if the mood matches exactly.
+5. **Numeric points.** For energy, add `2 × closeness`. For tempo, valence, danceability, and acousticness, add `0.5 × closeness`. Closeness is `1 - |song value - target|`.
+6. **Total.** The final score is the sum of all points, from 0 to 9.
+7. **Rank.** Sort by final score, highest first. Break ties by `id`.
+8. **Diversify.** Cap the number of songs from any one artist.
+9. **Output.** Return the top k songs (default k = 5).
+
+---
+
 ## Experiments You Tried
 
 Use this section to document the experiments you ran. For example:
@@ -128,6 +167,15 @@ Examples:
 - It only works on a tiny catalog
 - It does not understand lyrics or language
 - It might over favor one genre or mood
+
+### Expected biases
+
+- **Label matching is exact.** "Chill" and "relaxed" get no credit for each other, and genre and mood labels were chosen by the catalog's curator, so users whose tastes fall between labels are served worse.
+- **Catalog imbalance.** Genres with one or two songs (for example hip hop or metal) can only be recommended to users who ask for them, and a user with rare tastes gets thin results.
+- **Hand-entered features.** The numeric values were set by hand, not measured from audio. The 10 songs added in this project were also estimated by hand, so the rankings reflect those estimates.
+- **Profile-author taste.** The default target values reflect whoever wrote the profile. Users who prefer extreme energy or tempo are pulled toward the middle.
+- **Filter bubble.** Skipped and liked songs are excluded, but nothing introduces new genres or moods, so the list can narrow over time.
+- **Artist cap.** Limiting songs per artist protects variety, but it can push out a closer match.
 
 You will go deeper on this in your model card.
 
