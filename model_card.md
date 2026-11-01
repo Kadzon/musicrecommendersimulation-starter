@@ -92,12 +92,17 @@ Most genres have only one song. Lofi has three. That means a listener who likes 
 **Profiles we tested:**
 - The default pop/happy profile (genre pop, mood happy, energy 0.8).
 - A "Late-night studier" profile (lofi, chill, with targets for all five numbers). We checked song 4, "Library Rain," and got 8.80, which matched our hand calculation.
+- A hip-hop fan (hip hop, confident, high energy and danceability).
+- An acoustic low-energy listener (folk, melancholic, low energy, high acousticness).
+- A high-tempo house listener (house, euphoric, high energy and tempo).
+
+The three new profiles show that the top song matches genre and mood when one exists. The hip-hop profile has only one matching song, so its list drops off fast.
 
 **What we looked for:** whether the top results matched the genre and mood we asked for, and whether the reasons matched the points.
 
 **What surprised us:** songs with no genre or mood match still made the top five. This happened because energy alone can add up to 2 points.
 
-**What we did not do:** we did not run the pytest suite as part of this evaluation. We also did not test with real listeners.
+**What we did not do:** we did not run the pytest suite as part of this evaluation. We also did not test with real listeners, and we did not try lowering the genre weight.
 
 ---
 

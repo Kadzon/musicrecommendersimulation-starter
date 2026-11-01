@@ -152,6 +152,18 @@ Rank  Title                  Score
 
 ---
 
+## How Real Recommenders Work
+
+Apps like Spotify and YouTube follow the same basic steps as this project: data, preferences, and ranking.
+
+- **Input data:** features of each song or video, such as genre, mood, and tempo, plus behavior like plays, skips, likes, and watch time.
+- **User preferences:** taste learned from what the person does, not only from a form they fill out. Real apps update this as the person listens or watches.
+- **Ranking and selection:** the app scores many candidates, sorts them, and picks the top results. Many apps also mix in new songs or videos to explore what the person might like.
+
+This project is content-based, because it scores songs only on their own features. Collaborative systems instead use what similar users liked, so they need lots of user data. Real apps usually combine both, along with many more signals than this project uses.
+
+---
+
 ## Algorithm Recipe
 
 1. **Input.** Load `songs.csv` and the `UserProfile` (numeric targets, preferred genre and mood, and a list of song ids to skip).
@@ -177,9 +189,145 @@ Rank  Title                  Score
 
 **Design change: blend to additive points.** The first plan combined the numeric and category scores with a 0.7/0.3 blend. We switched to additive points (genre 3, mood 2, energy 2, others 0.5). This was a design decision, not a tested result.
 
+**Run 3: three user profiles** (each run through `recommend_songs`, top 5 shown).
+
+Hip-hop fan (genre hip hop, mood confident, energy 0.85, tempo 95, valence 0.6, danceability 0.85, acousticness 0.1):
+
+```
+Rank  Title                  Score
+----------------------------------
+1     Concrete Dreams         8.83
+      - genre match (+3.0)
+      - mood match (+2.0)
+      - energy closeness (+1.86)
+      - tempo_bpm closeness (+0.49)
+      - valence closeness (+0.49)
+      - danceability closeness (+0.50)
+      - acousticness closeness (+0.49)
+
+2     Salt and Sirens         3.71
+      - energy closeness (+1.90)
+      - tempo_bpm closeness (+0.50)
+      - valence closeness (+0.36)
+      - danceability closeness (+0.47)
+      - acousticness closeness (+0.48)
+
+3     Afterglow Protocol      3.68
+      - energy closeness (+1.94)
+      - tempo_bpm closeness (+0.38)
+      - valence closeness (+0.40)
+      - danceability closeness (+0.47)
+      - acousticness closeness (+0.48)
+
+4     Sunrise City            3.65
+      - energy closeness (+1.94)
+      - tempo_bpm closeness (+0.40)
+      - valence closeness (+0.38)
+      - danceability closeness (+0.47)
+      - acousticness closeness (+0.46)
+
+5     Night Drive Loop        3.56
+      - energy closeness (+1.80)
+      - tempo_bpm closeness (+0.44)
+      - valence closeness (+0.45)
+      - danceability closeness (+0.44)
+      - acousticness closeness (+0.44)
+```
+
+Acoustic low-energy listener (genre folk, mood melancholic, energy 0.3, tempo 90, valence 0.35, danceability 0.45, acousticness 0.9):
+
+```
+Rank  Title                  Score
+----------------------------------
+1     Stone and Thread        8.94
+      - genre match (+3.0)
+      - mood match (+2.0)
+      - energy closeness (+1.96)
+      - tempo_bpm closeness (+0.49)
+      - valence closeness (+0.49)
+      - danceability closeness (+0.49)
+      - acousticness closeness (+0.49)
+
+2     Clockwork Waltz         3.78
+      - energy closeness (+2.00)
+      - tempo_bpm closeness (+0.47)
+      - valence closeness (+0.41)
+      - danceability closeness (+0.42)
+      - acousticness closeness (+0.48)
+
+3     Spacewalk Thoughts      3.66
+      - energy closeness (+1.96)
+      - tempo_bpm closeness (+0.38)
+      - valence closeness (+0.35)
+      - danceability closeness (+0.48)
+      - acousticness closeness (+0.49)
+
+4     Coffee Shop Stories     3.63
+      - energy closeness (+1.86)
+      - tempo_bpm closeness (+0.50)
+      - valence closeness (+0.32)
+      - danceability closeness (+0.45)
+      - acousticness closeness (+0.49)
+
+5     Library Rain            3.61
+      - energy closeness (+1.90)
+      - tempo_bpm closeness (+0.42)
+      - valence closeness (+0.38)
+      - danceability closeness (+0.44)
+      - acousticness closeness (+0.48)
+```
+
+High-tempo house listener (genre house, mood euphoric, energy 0.9, tempo 124, valence 0.8, danceability 0.9, acousticness 0.05):
+
+```
+Rank  Title                  Score
+----------------------------------
+1     Afterglow Protocol      8.95
+      - genre match (+3.0)
+      - mood match (+2.0)
+      - energy closeness (+1.96)
+      - tempo_bpm closeness (+0.50)
+      - valence closeness (+0.49)
+      - danceability closeness (+0.50)
+      - acousticness closeness (+0.49)
+
+2     Gym Hero                3.88
+      - energy closeness (+1.94)
+      - tempo_bpm closeness (+0.47)
+      - valence closeness (+0.48)
+      - danceability closeness (+0.49)
+      - acousticness closeness (+0.50)
+
+3     Sunrise City            3.67
+      - energy closeness (+1.84)
+      - tempo_bpm closeness (+0.47)
+      - valence closeness (+0.48)
+      - danceability closeness (+0.45)
+      - acousticness closeness (+0.43)
+
+4     Salt and Sirens         3.59
+      - energy closeness (+1.80)
+      - tempo_bpm closeness (+0.38)
+      - valence closeness (+0.46)
+      - danceability closeness (+0.49)
+      - acousticness closeness (+0.46)
+
+5     Storm Runner            3.56
+      - energy closeness (+1.98)
+      - tempo_bpm closeness (+0.38)
+      - valence closeness (+0.34)
+      - danceability closeness (+0.38)
+      - acousticness closeness (+0.47)
+```
+
+**What the profiles show:**
+- **Hip-hop fan:** Only one song matches genre and mood (Concrete Dreams, 8.83). Second place drops to 3.71, so the rest of the list is filled by songs that match only on energy and the other numbers. The catalog has one hip-hop song, so this is the main limit for this listener.
+- **Acoustic low-energy listener:** Stone and Thread (folk, melancholic) wins clearly. The next four are quiet songs from other genres: classical, ambient, jazz, and lofi. Low energy and high acousticness pull the list toward calm songs, even without a genre match.
+- **High-tempo house listener:** Afterglow Protocol wins at 8.95. Gym Hero and Sunrise City come next because their energy and tempo are close to the target, even though neither is house.
+- **Pattern across all three:** The top song always matches genre and mood when one exists. Ranks 2 to 5 have close scores, and energy does most of the work there.
+
 **Not run yet:**
 - Changing the genre weight (for example, from 3 to 0.5) to see how the top results move.
-- Adding tempo or valence to the score for different profiles.
 - Running the pytest suite.
 
 ---
