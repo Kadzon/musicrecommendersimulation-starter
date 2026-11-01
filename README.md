@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+VibeFinder is a small music recommender. It scores each song in a 20-song catalog against a listener's favorite genre, mood, and target levels. It adds up points and shows the top 5 songs with reasons. The project is a classroom simulation of how simple scoring can act like a real recommender.
 
 ---
 
@@ -75,7 +75,7 @@ UserProfile (targets, weights, genre, mood) ────────────
 
 1. Skips songs the user has already heard or liked.
 2. Sorts the remaining songs by final score, highest first. Ties are broken by `id` so results are the same each time.
-3. Limits each artist to a set number of songs, so one artist cannot fill the whole list.
+3. Planned: limit each artist to a set number of songs, so one artist cannot fill the whole list. This is not in the code yet.
 4. Returns the top k songs (the starting value is 5).
 
 
@@ -92,6 +92,7 @@ UserProfile (targets, weights, genre, mood) ────────────
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
 2. Install dependencies
 
@@ -160,30 +161,36 @@ Rank  Title                  Score
 5. **Numeric points.** For energy, add `2 × closeness`. For tempo, valence, danceability, and acousticness, add `0.5 × closeness`. Closeness is `1 - |song value - target|`.
 6. **Total.** The final score is the sum of all points, from 0 to 9.
 7. **Rank.** Sort by final score, highest first. Break ties by `id`.
-8. **Diversify.** Cap the number of songs from any one artist.
+8. **Diversify (planned).** Cap the number of songs from any one artist. Not implemented yet.
 9. **Output.** Return the top k songs (default k = 5).
 
 ---
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+**Run 1: default pop/happy profile** (genre pop, mood happy, energy 0.8).
+- The top result was Sunrise City (6.96), which matches on genre, mood, and energy.
+- Songs with no genre or mood match, such as Salt and Sirens, still reached the top five. Energy alone can add up to 2 points, so a close energy match can beat a song with a genre match but a poor energy match.
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+**Run 2: "Late-night studier" profile** (lofi, chill, all five targets).
+- Song 4, Library Rain, scored 8.80. This matched the hand calculation in the How The System Works section.
+
+**Design change: blend to additive points.** The first plan combined the numeric and category scores with a 0.7/0.3 blend. We switched to additive points (genre 3, mood 2, energy 2, others 0.5). This was a design decision, not a tested result.
+
+**Not run yet:**
+- Changing the genre weight (for example, from 3 to 0.5) to see how the top results move.
+- Adding tempo or valence to the score for different profiles.
+- Running the pytest suite.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
+The main limits of this recommender are below.
 
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
+- The catalog has only 20 songs, and most genres have one or two songs.
+- It does not understand lyrics, language, or release year.
+- It might favor one genre or mood, since genre is worth more points than mood.
 
 ### Expected biases
 
@@ -192,7 +199,7 @@ Examples:
 - **Hand-entered features.** The numeric values were set by hand, not measured from audio. The 10 songs added in this project were also estimated by hand, so the rankings reflect those estimates.
 - **Profile-author taste.** The default target values reflect whoever wrote the profile. Users who prefer extreme energy or tempo are pulled toward the middle.
 - **Filter bubble.** Skipped and liked songs are excluded, but nothing introduces new genres or moods, so the list can narrow over time.
-- **Artist cap.** Limiting songs per artist protects variety, but it can push out a closer match.
+- **Artist cap (planned).** Once added, limiting songs per artist will protect variety, but it may push out a closer match.
 
 You will go deeper on this in your model card.
 
@@ -200,14 +207,8 @@ You will go deeper on this in your model card.
 
 ## Reflection
 
-Read and complete `model_card.md`:
+It was great learning the difference between content-based and collaborative recommendations. This project is content-based, because it scores songs on their own features. I also wondered whether movie recommenders use the same kind of scoring, or whether they rely on other non-numerical features, such as cast or reviews.
 
-[**Model Card**](model_card.md)
-
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
+We changed the scoring from a 0.7/0.3 blend to additive points. When I set the profile to only energy, songs from other genres made the top five, which I did not expect. I also used AI tools to write much of the coding logic, which saved time. I still checked the numbers by hand, because the README and my scoring plan first disagreed, and an AI tool can sound confident and still be wrong. What surprised me most is that simple addition of points, like 3 for a genre match and 2 for a mood match, can feel like a real recommendation. If I kept building this, I would add the artist limit from the README, give partial credit for similar moods like chill and relaxed, and ask a few real listeners to rate the results.
 
 
