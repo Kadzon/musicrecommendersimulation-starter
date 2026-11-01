@@ -119,15 +119,32 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Paste a sample of your recommender's output here as a text block so a reader can see what it produces:
+Output from `python src/main.py` for the default pop/happy profile (genre=pop, mood=happy, energy=0.8):
 
 ```
-# e.g.:
-# User profile: genre=indie, mood=chill, energy=low
-# Recommendations:
-#   1. ...
-#   2. ...
-#   3. ...
+Loading songs from data/songs.csv...
+Loaded songs: 20
+
+Rank  Title                  Score
+----------------------------------
+1     Sunrise City            6.96
+      - genre match (+3.0)
+      - mood match (+2.0)
+      - energy closeness (+1.96)
+
+2     Gym Hero                4.74
+      - genre match (+3.0)
+      - energy closeness (+1.74)
+
+3     Rooftop Lights          3.92
+      - mood match (+2.0)
+      - energy closeness (+1.92)
+
+4     Salt and Sirens         2.00
+      - energy closeness (+2.00)
+
+5     Concrete Dreams         1.96
+      - energy closeness (+1.96)
 ```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->

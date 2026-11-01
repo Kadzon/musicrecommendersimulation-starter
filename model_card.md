@@ -21,16 +21,23 @@ Prompts:
 
 ## 3. How the Model Works  
 
-Explain your scoring approach in simple language.  
+The recommender goes through every song in the catalog and asks one question: how well does this song fit what the listener wants right now? Each song earns points for how well it matches, the points are added up, and the highest-scoring songs are shown first.
 
-Prompts:  
+**What it looks at in each song.** Every song has a genre and a mood, which are simple labels like "lofi" or "chill." Every song also has five numbers: energy (how intense it feels), valence (how upbeat or positive it sounds), danceability, acousticness (how acoustic versus electronic it sounds), and tempo (how fast it is, in beats per minute). The song's title and artist are shown in the results but do not affect the score.
 
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
+**What it knows about the listener.** The listener gives a favorite genre and a favorite mood. They can also give a target level for any of the five numbers, such as "I want energy around 0.4." The system can also skip songs the listener has already heard.
 
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+**How points are given.**
+- A genre match earns 3 points, and a mood match earns 2 points. Only exact matches count.
+- Energy can earn up to 2 points. The closer a song's energy is to the listener's target, the more points it gets.
+- Tempo, valence, danceability, and acousticness can each earn up to half a point, using the same closeness idea.
+- Adding all of this up gives a total out of 9. Tempo is first put on a 0-to-1 scale so it can be compared fairly with the other numbers.
+
+If the listener does not give a target for one of the numbers, that number simply does not add any points. That means a listener who only sets energy is ranked almost entirely by energy and genre.
+
+**How the results are chosen.** Songs are sorted from highest total to lowest. If two songs tie, the one with the lower id comes first. The top results are shown with a short list of reasons, such as "genre match" or "energy close to target," so the listener can see why each song was picked.
+
+**What changed from the starter logic.** The starter code returned placeholder results. The points system above was built from scratch, with each feature's influence chosen on purpose. The tempo scaling, the skip list, and the reasons shown with each result were added to make the recommendations easier to check.
 
 ---
 
